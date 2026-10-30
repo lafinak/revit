@@ -779,3 +779,34 @@ Full reports in `comparisons/`. Headlines:
 
 Still running: openbim-ifc-compare (Priority 10, the other strategically
 critical one), tika-compare, thatopen-survey, csg-kernel-compare.
+
+## Round 17 — ThatOpen platform comparison (Priority 13)
+
+Full report at `comparisons/thatopen-vs-ifclite.md`.
+
+- **Not a platform-level competitor — a genuinely different niche**: ThatOpen
+  (6 npm packages) is a focused browser-embedded 3D BIM viewer toolkit;
+  ifc-lite (50+ packages) covers BCF, IDS validation, clash detection, CRDT
+  collaboration, 2D drawing generation, model diffing, and a 125+-tool MCP
+  server — categories ThatOpen has zero packages for.
+- **Adoption reality check**: ThatOpen's core packages are downloaded
+  **5-10x more** than ifc-lite's equivalents (`web-ifc` alone: ~966K/month vs.
+  `@ifc-lite/wasm`'s ~58K/month) — a real incumbency/maturity signal that
+  should be stated plainly, not obscured, even though it doesn't change the
+  platform-breadth conclusion.
+- **Verified hands-on, not just read from docs**: the agent actually got
+  ThatOpen's `IfcImporter` + `SingleThreadedFragmentsModel` running headlessly
+  in Node and queried `real.ifc` successfully — a more capable headless story
+  than "it's a browser library" would suggest, though still a secondary
+  escape hatch, not a designed product surface (no CLI, no MCP, no query
+  language — you call internal-feeling classes directly).
+- **Recommended framing for the book, adopted as the better argument**: don't
+  present this as "ifc-lite beats ThatOpen" (a package-count comparison would
+  unfairly flatten ThatOpen's genuine browser-viewer dominance). The stronger,
+  more defensible claim: **the agent-tool-calling/MCP paradigm is new enough
+  that an entire category of incumbent BIM tooling simply has no answer for
+  it yet** — that's backed by verified evidence (install + headless test +
+  real package/download data), not marketing claims from either project.
+
+Still running: openbim-ifc-compare (Priority 10, strategically critical),
+tika-compare, csg-kernel-compare.
