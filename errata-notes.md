@@ -379,3 +379,113 @@ framing z.ai specified:
 
 No further research or testing planned for this effort. DEMO_DAY.md and
 errata-notes.md are considered final as of this round.
+
+## Round 10 — z.ai's full gap list, executed
+
+Working through z.ai's prioritized "what's untested" list. Real findings below;
+anything not reached is stated honestly, not glossed over.
+
+### Confirmed working, real output
+
+- **`rvt-analyze --redact`**: genuinely redacts PII. Diffed redacted vs
+  unredacted JSON output on `real.rvt` — `file_guid` partially redacted,
+  original Windows path (`B:\Git\revit-test-datasets\...`) fully replaced with
+  `<redacted path>`. z.ai's specific worry ("if output is identical, the claim
+  is wrong") is resolved: not identical, redaction works.
+- **`rvt-write --dry-run`**: validated a 0-patch manifest against `real.rvt`
+  successfully. Full non-dry-run patch NOT attempted — `rvt-dump` only writes
+  `.decomp` files for gzip-compressed streams, leaving no safe way to extract a
+  small uncompressed stream's raw bytes for a verified round-trip without
+  guessing at undocumented binary format, which risks a misleading result.
+  Status: dry-run path verified, full write path not independently proven.
+- **`rvt-history`**: real and informative. Found this exact test file's real
+  upgrade lineage: Revit 2020 → 2022 (×2) → 2024 (×2) — it was never natively
+  authored in 2024, contrary to what the filename/BasicFileInfo alone suggests.
+- **`rvt-corpus doctor`**: real, functional. Ran against 3 copies of `real.rvt`
+  (not genuine multi-version data, but structurally valid 3+-file input) —
+  produced a real bucketed classification (`partial_walker_decode`), with
+  GitHub-issue-style suggested labels and genuine diagnostic warnings about
+  unmapped unit identifiers and storey-binding heuristics.
+- **Python `rvt.RevitFile` full API sweep — all 7 previously untested methods
+  work**: `decoded_elements()` (structured per-field decode), `write_ifc()`
+  (returned exactly 4,879,335 chars — byte-identical to the CLI's `real.ifc`
+  file size, a strong cross-tool consistency check), `schedule_csv()` (real
+  CSV schedule with element/level/material/geometry columns),
+  `read_adocument()` (low-level forensic struct with pointer offsets),
+  `elem_table_records()`, `declared_element_ids()` (**26,425** — the raw
+  declared-ID space, a much larger and distinct number from the 970 "building
+  elements" or 4,833 "production_walker_elements" — don't conflate these three
+  different element-count definitions), `export_diagnostics_json()` (matches
+  `real-diag.json`). z.ai's gap #7 fully closed.
+- **`anonymize` — actually inspected, not just run**: confirmed real.
+  `IFCPERSON($,$,'rvt-rs',$,$,$,$,$)` → `IFCPERSON($,'Anonymous',$,$,$,$,$,$)` —
+  genuinely replaces the author name field.
+- **`bcf create` — inspected the zip structure**: produces a standards-shaped
+  BCF archive (`bcf.version`, `project.bcfp`, a UUID-named topic folder with
+  `markup.bcf`). Correct required files present. Not opened in an actual
+  BCF viewer (Navisworks/BIMcollab) — that remains untested, no such tool
+  available here.
+- **`pip install ifclite-geom`**: installs cleanly (v4.15.0), imports real
+  methods (`geometry_data_json`, `rebar_schedule`,
+  `rebar_schedule_with_fabrication_precheck`, `authored_quantity_analysis`,
+  `check_swept_disks`, `quantity_analysis`, `swept_disk_definitions`). A direct
+  call to `geometry_data_json('real.ifc')` failed (`TypeError: Can't extract
+  str to Vec`) — wrong calling convention guessed, not a tool failure. Exact
+  signature not resolved in this session.
+- **`ifc-lite view`**: real HTTP server, confirmed binds a port and responds
+  (HTTP 200), with a documented REST command API (`colorize`, `isolate`).
+  Cannot verify actual WebGPU rendering from this text-only session — the
+  server/API layer is real, the visual claim remains unverified.
+
+### Significant corrections to earlier findings
+
+- **Mutation persistence — refined, not reversed.** Round 6 proved MCP
+  `entity_set_property` via `tools/call` is in-memory-only per server process.
+  **This round found the separate CLI path persists**: `ifc-lite mutate
+  real.ifc --set Pset_WallCommon.FireRating="REI 999 ROUNDTRIP" --id 5613 --out
+  mutated-out.ifc`, followed by a **completely fresh process** reloading
+  `mutated-out.ifc` and querying the property, correctly returned
+  `"REI 999 ROUNDTRIP"`. **Two different mutation code paths, two different
+  persistence behaviors — do not conflate MCP in-memory mutations with CLI
+  `mutate --out`, which does write to disk.**
+- **Sandbox escape surface is broader than Round 7/8 documented.** Full sweep:
+  `require` blocked, `XMLHttpRequest` blocked, ES `import()` syntax blocked —
+  but `fetch` (proven exfil), `process.env` (proven read), **`WebSocket`**
+  (reachable, untested as exfil channel), **`Function` constructor** (reachable
+  AND functional — `new Function('return typeof process')()` executed and
+  returned `"object"`, a classic sandbox-escape primitive), and **nested
+  native `eval()`** (reachable — `eval('1+1')` → `2`) are all open. The sandbox
+  blocks a few legacy/unnecessary APIs while leaving every modern,
+  genuinely powerful primitive reachable. This is a stronger statement than
+  "process.env + fetch leak" — functionally this sandbox provides minimal
+  real isolation. Still scoped to CLI/shell access only, per Round 8/9 — not
+  reachable via MCP `tools/call`, confirmed again unchanged.
+
+### Honestly incomplete / not reached
+
+- `ids audit` — tested with a hand-written IDS file that had a real XSD
+  structure error (`<specification>` must nest inside `<specifications>`);
+  the tool correctly rejected it with precise error codes. This confirms the
+  *validator* works, but a syntactically valid IDS ruleset was never
+  successfully run end-to-end against `real.ifc` in this round.
+- `generate-spaces` — ran, but reported "0 room(s) → 0 IfcSpace emitted" on
+  every one of the 15 real storeys, despite the model having 116 real
+  `IfcSpace` entities already. Does not appear to read/dedupe against existing
+  spaces; attempts fresh topological room detection from wall geometry and
+  found none on this real, complex building. No `--out` file was actually
+  written in this attempt (the follow-up query failed with ENOENT). Not
+  resolved further — would need the exact right invocation flags, not found
+  in `--help` in the time available.
+- `bim.drawing` / `bim.spaces` / `bim.sandbox` — **exist as live runtime
+  properties on `bim`** (confirmed via `Object.keys(bim)`), but **absent from
+  the documented `ifc-lite schema` dump entirely**. `bim.drawing` specifically
+  has zero own enumerable methods (`Object.keys(bim.drawing)` → `[]`) and none
+  of the guessed method names (`floorPlan`, `section`, `generate`) exist.
+  Honest conclusion: `@ifc-lite/drawing-2d` is installed as a dependency of
+  `@ifc-lite/sdk` but is **not wired into the public, documented `eval` API** —
+  the enterprise 2D-drawing feature exists in the dependency tree, not in the
+  reachable surface.
+- `rvt-write` full non-dry-run patch, `@ifc-lite/collab`, `embed-sdk`, `codegen`,
+  `flow`/`flow-nodes`, `source-dalux`/`source-dropbox`/`source-autodesk` —
+  not attempted this round, consistent with z.ai's own "verify after tomorrow"
+  tier, not the "verify tonight" tier.
