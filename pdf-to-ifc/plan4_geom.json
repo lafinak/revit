@@ -1,0 +1,33 @@
+{
+  "source_pdf": "4.pdf.pdf",
+  "page_size_pt": {
+    "width": 1193.25,
+    "height": 846.75
+  },
+  "extraction_method": "automated_bbox + human_verified_dimensions (see module docstring)",
+  "automated": {
+    "total_drawing_paths": 2981,
+    "line_segments": 2756,
+    "curve_segments": 2935,
+    "drawing_bbox_pt": {
+      "x0": 184.34335327148438,
+      "y0": 104.67456817626953,
+      "x1": 1140.845458984375,
+      "y1": 760.0335083007812,
+      "width_pt": 956.5021057128906,
+      "height_pt": 655.3589401245117
+    },
+    "has_extractable_text": false
+  },
+  "verified_dimensions": {
+    "width_mm": 6600,
+    "depth_mm": 7550,
+    "wall_thickness_mm": 450,
+    "rooms": [
+      "stairwell",
+      "bathroom",
+      "main living area",
+      "entry"
+    ]
+  }
+}
