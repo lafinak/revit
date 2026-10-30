@@ -810,3 +810,25 @@ Full report at `comparisons/thatopen-vs-ifclite.md`.
 
 Still running: openbim-ifc-compare (Priority 10, strategically critical),
 tika-compare, csg-kernel-compare.
+
+## Round 18 — resolved ifclite-geom calling convention (closed a Round 10 gap)
+
+Round 10 left `ifclite-geom`'s exact calling convention unresolved after a
+failed guess (`geometry_data_json('real.ifc')` → `TypeError: Can't extract
+str to Vec`). Resolved via `help()`: the function wants **raw bytes**
+(`open(path, "rb").read()`), not a path string.
+
+Correct call, run against `real.ifc`:
+```python
+import ifclite_geom as g
+data = open('real.ifc', 'rb').read()
+result = g.geometry_data_json(data)
+```
+**Confirmed working**: 417ms, returned a 1.79MB JSON document
+(`ifc-lite-geometry-data` schema v1) with **1,171 tessellated elements**, each
+carrying real vertex coordinates, `global_id`, and `name` — e.g. `IfcSpace`
+"66" with coordinates at real building scale (x/y in the 14-15m range,
+z=23.16m matching storey "Level 6"'s real elevation, independently verified
+earlier in this research). This closes the gap honestly left open in Round 10
+— `ifclite-geom` is a genuine, functional geometry-tessellation library, not
+an unverified claim.
