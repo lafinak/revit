@@ -31,7 +31,7 @@ and its IFC export `real.ifc` (970 building elements, 64,747 total STEP entities
 
 | Subcommand | Works | Notes |
 |---|---|---|
-| `info` | ✅ | 15-16ms parse |
+| `info` | ✅ | **CORRECTED in Round 13**: originally reported as 15-16ms, but that figure was measured on a 24-entity synthetic scaffold file, not the real 970-element building — real.ifc's actual parse time is ~91-154ms. See Round 13. |
 | `query` | ✅ | |
 | `ask` | ✅ | my earlier "doesn't exist" claim was wrong — partial `--help` read |
 | `eval` | ✅ | `.toArray()` not `.all()` on query chain |
@@ -543,3 +543,106 @@ these two was the error; they needed to be tested separately, and now have been.
   suggest more is open than was even tested). Treat the CLI `eval` subcommand
   as equivalent to full shell access when assessing deployment risk — because
   for practical purposes, it is.
+
+## Round 12 — Priority 7 (second real file) and Priority 8 (config CLI quirk)
+
+- **Priority 7, cross-version validation**: downloaded the second real file from
+  the same MIT dataset, `Revit_IFC5_Einhoven.rvt` (Revit 2023, 913,408 bytes,
+  SHA256-verified against its LFS pointer). Full pipeline: readiness score
+  **1.00** again, 37 building elements (26 walls, 9 plates, 2 windows) decoded
+  cleanly in 0.2s. Good secondary confirmation across a different Revit version
+  (2023, not just 2024). **True scale-testing beyond 33.7MB was not possible**:
+  this is the only other real `.rvt` in the known MIT public dataset, and it's
+  smaller, not bigger, than Core Interior. Per z.ai's own instruction to stop
+  early if no larger files exist — the "does rvt-rs choke on 100-500MB files"
+  question remains genuinely open, not resolved either way.
+- **Priority 8**: the exact test command z.ai suggested (`claude --mcp-config
+  file.json mcp list`) does not work as a quick CLI check — `--mcp-config` is
+  variadic (`<configs...>`) and greedily consumes the following `mcp`/`list`
+  tokens as additional config file arguments rather than stopping at one file,
+  and the `=`-syntax variant (`--mcp-config=file.json mcp list`) instead hangs
+  (launches an interactive session rather than running the `mcp list`
+  subcommand and exiting). Both attempts were killed rather than left running.
+  This is a real CLI UX quirk in the installed Claude Code version, but it does
+  NOT block tomorrow's actual plan — DEMO_DAY.md's config is a static JSON file
+  edit for Claude Desktop, not a `--mcp-config` CLI invocation, so this
+  particular finding doesn't affect the demo itself, just closes out z.ai's
+  specific suggested verification command as "doesn't work as written."
+
+## Round 13 — CRITICAL CORRECTION: the "15ms parse" figure was measured on the wrong file
+
+Independently caught by the `webifc-compare` agent (Priority 3), which could
+not reproduce "15-16ms" when testing ifc-lite against `real.ifc` and flagged
+the discrepancy explicitly rather than silently accepting it.
+
+**Root cause, verified directly**: `ifc-lite info out.ifc --json` (the tiny
+1,796-byte, 24-entity synthetic scaffold file, used in early rounds of this
+session) reports `parseTime: ~15-25ms`. This number got carried forward and
+quoted as if it applied to `real.ifc` (4,879,335 bytes, 64,747 entities, 970
+real building elements) — **it never did**. Re-measured directly:
+
+```
+ifc-lite info out.ifc --json   → parseTime: 25ms  (24 entities,   1,796 bytes)
+ifc-lite info real.ifc --json  → parseTime: 154ms (64,747 entities, 4,879,335 bytes)
+```
+
+The independent agent measured real.ifc's parseTime at 91-98ms across 3 runs
+(internal field) and 860-950ms wall-clock (full CLI invocation including Node
+startup). My own fresh measurement (154ms, internal field) is in the same
+order of magnitude as the agent's — both measurements agree that **the real
+figure is roughly 6-10x higher than the "15ms" previously stated**, and the
+exact number varies run-to-run (91-154ms range observed), which is itself
+worth noting — this isn't a single fixed constant.
+
+**Throughput correction**: 4.9MB in ~91-154ms internal parseTime ≈ 32-54 MB/s.
+The book's "~1.2 GB/s STEP tokenization" claim, if intended as the real.ifc
+parse-time proxy, is roughly **22-37x too high**. The agent's report raises
+the possibility this 1.2 GB/s figure refers to a tokenizer-only sub-stage
+rather than end-to-end parse — plausible, but unverified from here; the
+original benchmark methodology needs to be found and re-run before the figure
+is republished either way.
+
+**Action taken**: corrected the one place this figure appeared in writing
+(the Fáza 4 subcommand table above). It did not appear in DEMO_DAY.md — grepped
+specifically to confirm this before considering the correction complete.
+
+**Lesson for the book's own methodology section**: this is exactly the kind of
+error the whole multi-round self-correction process exists to catch — a number
+measured on one (trivial) input silently generalized to describe a different
+(real) input, never re-verified because it "sounded right" and matched the
+expectation of "fast." Independent agents re-deriving numbers from scratch,
+rather than trusting a prior session's stated result, is what caught it here.
+
+## Round 13b — web-ifc vs ifc-lite comparison (full agent report)
+
+Full report at `comparisons/webifc-vs-ifclite.md`. Headline findings beyond the
+performance correction above:
+
+- **Element counts**: identical between web-ifc and ifc-lite on real.ifc
+  (360/132/6/256/116/15/87/80 across 8 types) — both parsers correctly read
+  this file. Count correctness is confirmed, independent of the speed dispute.
+- **Performance, corrected comparison**: web-ifc's open+count (47-112ms,
+  avg ~85ms) is now in a similar-or-better range than ifc-lite's own internal
+  parseTime (91-98ms in the agent's run, 154ms in mine), not dramatically worse
+  as the book's claim implied. ifc-lite's full CLI wall-clock (860-950ms,
+  dominated by Node process startup) is much slower than web-ifc's warm,
+  in-process operation — but that's an architectural difference (one-shot CLI
+  vs. embedded-in-a-long-running-host), not a fair apples-to-apples parser
+  benchmark. The verdict: **"ifc-lite beats web-ifc" is refuted as stated for
+  this file; count correctness is confirmed, speed superiority is not.**
+- **Geometry**: web-ifc's `StreamAllMeshes` worked cleanly, producing 854
+  meshes across 3 runs. ifc-lite's equivalent geometry path was not tested with
+  matching rigor in this report — flagged as untested, not claimed as a gap.
+- **Ergonomics for an LLM agent** (the most actionable finding for the book's
+  positioning argument): ifc-lite's CLI/JSON/`ask`/MCP surface is genuinely
+  more agent-ergonomic than web-ifc's embeddable-library API, which requires
+  the agent to write and run JS/TS glue code, know numeric IFC type constants,
+  and manually walk STEP relationship graphs for anything beyond raw type
+  counts. This conclusion holds independent of which tool parses faster — it's
+  an architecture argument, not a performance one, and it survives the speed
+  correction above fully intact.
+- **Strategic verdict**: for a browser-rendered viewer specifically, web-ifc is
+  the architecturally correct choice (it's what Three.js-based viewers are
+  actually built on); for agent/automation-facing BIM analysis, ifc-lite's
+  surface is the better fit. Both can be true at once — this is a "right tool
+  for the job" finding, not a universal winner.
