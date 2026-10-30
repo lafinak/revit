@@ -862,3 +862,86 @@ Revit metadata extractor" overstates reality — no such component exists in
 Tika. Rephrase to something like "Apache Tika, which detects `.rvt` as a
 generic OLE2/CFB container but performs no Revit-specific parsing," to avoid
 overclaiming prior art that isn't actually there.
+
+## Round 20 — BIMCraft: the real challenge to "ifc-lite is the largest Rust BIM project"
+
+z.ai found this independently via web research; verified hands-on here before
+writing anything into the record, consistent with this project's standing
+discipline — not accepted on a description alone.
+
+**Confirmed real via GitHub API**: `IPedrax/BIMCraft`, 743 stars, 113 forks,
+Apache-2.0, Rust, created 2026-10-15 (≈2 weeks before this check — unusually
+fast growth, noted as a fact worth flagging, not dismissed or over-interpreted).
+
+**README claims verified by reading the actual document, not summarized
+secondhand**: full BIM-authoring tool (walls/doors/windows/floors/rooms/
+columns/stairs/roofs/grids), desktop apps for 3 OSes, IFC2x3/IFC4 import+export,
+MCP support, and — critically — its own `.rvt` reader explicitly stated as
+**"ported in part from rvt-rs"**, with direct copyright credit to rvt-rs's
+author (Griffin Long) in the license section.
+
+**Hands-on verification, not just README-reading**: cloned the repo, built
+just the CLI crate (zero GUI deps, 6m15s, 28MB binary), ran it against our own
+`real.rvt`:
+- `info`: 0.614s, every cross-checkable number matches exactly what's already
+  independently verified across rvt-rs/ifc-lite/xBim/IfcOpenShell — Walls 360,
+  Doors 132, Windows 6, Columns 256, Rooms 116, Floors 99, all 15 levels,
+  `declared` count 26,425 (matches the Python `rvt` binding exactly), even the
+  exact build string and save path.
+- `convert` to IFC: **2.445s — faster than rvt-rs's own `rvt-ifc` export
+  (5.66s) of the same file**, a real measured ~2.3x speed difference.
+- `mcp`: real JSON-RPC handshake, 10 genuine tools (`execute`, `script`,
+  `inspect_model`, `query_elements`, `schedule`, `render`, `open`, `save`,
+  etc.) matching the README's command-language description exactly.
+
+**Implication for the book's claims**:
+1. **"rvt-rs is the only credible reader" — survives, reinforced.** BIMCraft's
+   reader is an explicit rvt-rs port, not an independent competitor. If
+   anything, the most ambitious new Rust BIM project choosing to build on
+   rvt-rs rather than writing its own reader is evidence *for* the claim.
+2. **"ifc-lite is the largest Rust BIM project" — does not survive
+   unqualified**, and this is compounded by a separate finding from the
+   parallel `openbim-ifc-compare2` agent: ifc-lite's own CLI package is
+   **TypeScript/Node**, not Rust (`"type": "module"`, built with `tsc`), with
+   `@ifc-lite/wasm`'s actual source language unconfirmed from package
+   metadata alone. **The claim's premise — that ifc-lite's core is even
+   predominantly Rust — was not established and is now in real doubt**,
+   independent of BIMCraft's or openbim-ifc's size. This needs a direct check
+   of ifc-lite's own source repository (language breakdown via `cloc`/`tokei`
+   or GitHub's own language bar) before the claim is used in any form again.
+
+**Recommendation**: credit BIMCraft by name as the third pillar of this Rust
+BIM research (alongside rvt-rs and ifc-lite), with the rvt-rs lineage stated
+accurately (consumer, not rival), and do not republish "largest Rust BIM
+project" until ifc-lite's own language composition is verified directly.
+
+## Round 20b — openbim-ifc-cli comparison (Priority 10, completed)
+
+Full report at `comparisons/openbimifc-vs-ifclite.md`.
+
+- **Real, substantial, but young**: 418,671 lines of Rust across ~18 crates
+  (STEP, ifcXML, geometry, properties, spatial structure, cost, schedule,
+  validation, template catalog) — genuinely large, not a thin wrapper. All
+  tested subcommands (`validate`, `info`, `select`, `convert` to ifcXML/
+  ifcZIP, SARIF output) work correctly on `real.ifc`, matching ifc-lite's
+  element counts exactly.
+- **Adoption is minimal**: repo created 2026-08-24 (~9 weeks old), 3 stars,
+  0 forks, 58 open issues, 94 crates.io downloads for the CLI crate.
+- **Performance**: openbim-ifc's native-binary wall-clock (60-137ms) beats
+  ifc-lite's Node-CLI wall-clock (1.6-3.3s, dominated by Node startup) by a
+  real, measured margin — though ifc-lite's *internal* parse timer
+  (110-191ms) is comparable to openbim-ifc's wall-clock time, so the gap is
+  mostly about CLI invocation overhead, not raw parsing speed.
+- **Licensing matters strategically**: AGPL-3.0 OR Commercial — a materially
+  higher adoption barrier for commercial/proprietary pipelines than ifc-lite's
+  MPL-2.0, independent of either tool's technical merit.
+- **This agent independently surfaced the "is ifc-lite even Rust" doubt**
+  (see Round 20 above) while investigating ifc-lite's own package metadata —
+  a second, independent discovery path converging on the same open question.
+
+**Recommendation**: cite openbim-ifc-cli as a real, serious, but immature and
+low-adoption data point (418K LOC, 3 stars, 2 months old) — it does not
+establish ifc-lite as "not the largest" on its own, but it does mean ifc-lite
+is not uncontested in the pure-Rust-IFC-tooling space either, and it's the
+claim's own premise (is ifc-lite's core actually Rust?) that needs checking
+first, before weighing it against any competitor's size.
