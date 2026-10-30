@@ -311,3 +311,53 @@ query. The risk is specifically if Claude ever autonomously decides to construct
 an `eval` expression touching `process.env` or `fetch` ("to test something").
 Never prompt Claude to build `eval` expressions live; pre-write any `eval` string
 yourself and have Claude run it verbatim, or stick entirely to `ask` recipes.
+
+## Round 8 — verified the --read-only mitigation claim (z.ai's v1.2 Section 3.2)
+
+z.ai's own self-check request: verify whether `--read-only` actually hides
+`eval`/`run`/mutation tools from `tools/list`, as the v1.2 draft claimed without
+testing. Ran the exact test z.ai specified.
+
+**Real numbers**: full tool list = 126 (124 real ifc-lite tools + 2 artifacts:
+our own test session's `clientInfo.name` echoed into the grep capture, and a
+near-duplicate from a timing race — cleaned before counting). Read-only tool
+list = 86. **40 tools hidden by `--read-only`**, not the "~120" estimate from
+the draft test script.
+
+**Critical correction, not just a number fix**: `eval` and `run` were NEVER MCP
+tool names in the first place — grepped the full (non-read-only) 126-tool list
+directly, confirmed absent. They are CLI-only subcommands (`ifc-lite eval ...`,
+`ifc-lite run ...`), invoked via direct shell/Bash access, never reachable
+through MCP's `tools/call`. The diff of what `--read-only` actually hides is the
+mutation/create/write surface: `entity_create/delete/set_property/set_attribute`,
+all `place_*` element-authoring tools, `model_save/load/unload`,
+`bcf_topic_create/update/close`, `publish_layer`/`create_draft_layer`,
+`add_review_feedback`/`request_review`, `mutation_batch/undo`, `run_flow`/
+`resume_flow` (workflow execution, not code eval).
+
+**This means the Round 7 exfiltration PoC and the `--read-only` mitigation are
+about two different attack surfaces that don't actually connect:**
+- The PoC (`fetch` + `process.env` inside `eval`) requires direct CLI/shell
+  access to `ifc-lite eval` — exactly how it was run in this session (Claude
+  Code, which has Bash). It is NOT reachable via MCP `tools/call` at all,
+  `--read-only` or not, because no MCP tool maps to it.
+- `--read-only` IS real and valuable, but for a different reason: it correctly
+  hides the entire mutation-capable MCP tool surface (40 tools), which protects
+  against an MCP-connected agent modifying the model — a genuinely useful,
+  now-quantified mitigation, just not the one that closes the eval/fetch finding.
+
+**Corrected procurement-gate framing for v1.3** (replaces the draft G11 language
+that conflated "disable eval/run MCP tools" with reality): the CLI's `eval`/`run`
+subcommands expose a working `process.env`+`fetch` exfiltration primitive to
+anyone with direct shell access to the `ifc-lite` binary — this is a CLI/shell
+hardening concern, not an MCP-tool-surface concern. Separately, and for a
+different reason, `--read-only` hides 40 of 126 MCP tools (the full
+mutation/create/write surface), which is a real and valuable mitigation against
+a connected MCP agent modifying the model, correctly quantified now.
+
+**Practical implication for tomorrow**: Claude Desktop, talking only through
+MCP, cannot reach the eval/fetch exfiltration path through ordinary tool-calling
+— there's no tool that exposes it. This specific risk only applies to direct
+CLI use (e.g., you running `ifc-lite eval` yourself in a terminal with a
+value derived from something he said) — not to anything Claude does through the
+MCP connection during the actual demo.
