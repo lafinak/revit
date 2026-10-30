@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "mode": "default",
+  "input": {
+    "revit_version": 2024,
+    "build": "20230101_0000(x64)",
+    "original_path": "demo.rfa",
+    "project_name": "synthetic fixture",
+    "stream_count": 13,
+    "has_basic_file_info": true,
+    "has_part_atom": true,
+    "has_formats_latest": true,
+    "has_global_latest": true,
+    "release_support": {
+      "status": "partial",
+      "capability": "typed-project-elements"
+    }
+  },
+  "decoded": {
+    "production_walker_elements": 0,
+    "diagnostic_proxy_candidates": 0,
+    "arcwall_records": 0,
+    "class_counts": {},
+    "production_class_counts": {},
+    "parameter_value_count": 0,
+    "mean_element_confidence": null,
+    "elements_below_min_confidence": 0,
+    "min_element_confidence": 0.55,
+    "recovered_unit_identifiers": [],
+    "unknown_unit_identifiers": []
+  },
+  "exported": {
+    "total_entities": 1,
+    "building_elements": 0,
+    "building_elements_with_geometry": 0,
+    "building_elements_carried_by_parts": 0,
+    "by_ifc_type": {},
+    "classification_count": 0,
+    "unit_assignment_count": 0,
+    "material_count": 0,
+    "storey_count": 0,
+    "storey_names": [],
+    "storey_elevations_feet": [],
+    "storey_bound_elements": 0,
+    "material_names_sample": [],
+    "layered_element_count": 0,
+    "body_sources": {},
+    "bounding_box_bodies": 0
+  },
+  "skipped": [],
+  "unsupported_features": [
+    "project_units_from_revit_bytes",
+    "revit_levels_to_ifc_storeys",
+    "real_file_element_geometry",
+    "revit_compound_assemblies_and_walltype_widths",
+    "revit_material_display_names",
+    "floor_plan_loop_slab_export",
+    "typed_door_window_discrimination_and_host_binding",
+    "opening_index_to_ifc_openingelement_host_join",
+    "schema_field_wall_instances",
+    "revit_element_parameters_to_ifc_property_sets"
+  ],
+  "warnings": [
+    "No building elements were exported; output is scaffold-only.",
+    "No Revit display units were recovered; the IFC declares the SI units its values are written in.",
+    "No Revit levels were recovered; STEP output uses the fallback spatial storey.",
+    "Formats/Latest multipage integrity uncertain (checksum-page strip disabled; RVT_FORMATS_MULTIPAGE_UNVERIFIED)."
+  ],
+  "confidence": {
+    "level": "scaffold",
+    "score": 0.25,
+    "has_project_metadata": true,
+    "has_typed_elements": false,
+    "has_geometry": false,
+    "has_diagnostic_proxies": false,
+    "warning_count": 4,
+    "unexported_element_records": 0
+  },
+  "source_coverage": {
+    "status": "unset",
+    "notes": "Export source-coverage fractions are unset: no trustworthy denominator was available; fields stay null."
+  },
+  "formats_latest_integrity": {
+    "stream": "Formats/Latest",
+    "stored_bytes": 144,
+    "inflated_bytes": 493,
+    "page_boundary_detected": false,
+    "checksum_tail_stripping": "enabled",
+    "integrity_status": "uncertain",
+    "diagnostic_code": "RVT_FORMATS_MULTIPAGE_UNVERIFIED",
+    "schema_scan_truncated": false,
+    "schema_scanned_bytes": 493
+  }
+}
