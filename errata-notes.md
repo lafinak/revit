@@ -361,3 +361,21 @@ MCP, cannot reach the eval/fetch exfiltration path through ordinary tool-calling
 CLI use (e.g., you running `ifc-lite eval` yourself in a terminal with a
 value derived from something he said) — not to anything Claude does through the
 MCP connection during the actual demo.
+
+## Round 9 — final verification, requested by z.ai before lock-in
+
+Ran z.ai's exact specified command: full (non-read-only) `tools/list`, grepped
+for `eval|run|exec|execute|script`. **Empty result, grep exit code 1** —
+confirmed clean. No tool by any of those names exists in the MCP surface,
+with or without `--read-only`.
+
+This is the final confirmation needed to close out the eval/`--read-only`
+correction from Round 8. Both docs are now locked with the corrected two-finding
+framing z.ai specified:
+- Finding 1 (MCP `--read-only`): verified, 126→86 tools, real mutation-surface
+  hiding, independent control.
+- Finding 2 (CLI `eval` sandbox escape): verified PoC, shell-only threat model,
+  not reachable via Claude Desktop MCP, operational (not configuration) mitigation.
+
+No further research or testing planned for this effort. DEMO_DAY.md and
+errata-notes.md are considered final as of this round.
