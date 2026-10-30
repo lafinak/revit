@@ -646,3 +646,74 @@ performance correction above:
   actually built on); for agent/automation-facing BIM analysis, ifc-lite's
   surface is the better fit. Both can be true at once — this is a "right tool
   for the job" finding, not a universal winner.
+
+## Round 14 — IfcOpenShell and xBim comparison reports (final two agents)
+
+Full reports at `comparisons/ifcopenshell-vs-ifclite.md` and
+`comparisons/xbim-vs-rvtrs.md`.
+
+### IfcOpenShell vs ifc-lite — strongest validation result of the whole project
+
+- **100% agreement on real.ifc** — not the claimed 99.9%, actually better on
+  this file — across every metric tested: 15 IFC-class element counts, total
+  entity count (64,747), spatial hierarchy, all 15 storey names+elevations,
+  total floor area (57,737.659988 m², matching to the reported precision),
+  largest slab (1,215.450472 m²), GlobalId uniqueness (17,118/17,118 unique),
+  and property-set-level data on 5 sampled walls (FireRating, IsExternal,
+  ExtendToStructure, wall width — 20/20 data points matched exactly, including
+  decimal-level quantity values).
+- **Correctly scoped**: this validates one real file, not the book's claimed
+  "public benchmark corpus" — the agent explicitly declined to extrapolate
+  beyond what it tested, which is the right call.
+- **Independently reconfirmed the Round 13 parse-time correction**: this agent
+  also could not reproduce 15-16ms, measuring ifc-lite at 101-146ms (vs
+  IfcOpenShell's ~160.7ms avg) — a third independent measurement landing in
+  the same 90-160ms range as the other two. Three independent sessions, three
+  consistent results — this is no longer a single anomalous reading.
+- **One genuine scope clarification, not a disagreement**: the book's "9
+  material types" figure and the raw `IfcMaterial` entity count (87, confirmed
+  by every tool) are different metrics — "9" is distinct material names, "87"
+  is raw entity instances (e.g. multiple material-layer-usage entities
+  referencing the same 9 named materials). Not a tool bug, just needs
+  precise wording in the book.
+
+### xBim Essentials vs rvt-rs — perfect cross-validation, correctly scoped conclusion
+
+- **Full install succeeded cleanly** (.NET 8.0.427, Xbim.Essentials 6.1.605,
+  ~23s restore, zero errors across open/query/save/reopen).
+- **Exact agreement across all tested element types** (Wall/Door/Window/
+  Column/Space, plus Storey/Material/Slab counts) between xBim, rvt-rs, and
+  ifc-lite — a genuine three-way cross-check via three independent code paths.
+- **Floor area matches to two decimals** (57,737.66) between xBim's manual
+  IfcElementQuantity traversal and ifc-lite's built-in query — meaningful
+  because the two compute it via completely different internal logic.
+- **Round-trip integrity perfect**: xBim save→reopen preserved every element
+  count; zero duplicate GlobalIds across 17,118 IfcRoot entities.
+- **Correctly identified what this does NOT prove**: geometry fidelity
+  (shape representations, placements, booleans) was not tested — only counts,
+  names, elevations, and quantities. The agent explicitly flagged this rather
+  than overclaiming "full fidelity verified."
+- **Important scoping correction the agent made itself**: rvt-rs and xBim
+  don't actually do the same operation on the same input — rvt-rs's `rvt-ifc`
+  measures .rvt→IFC *export* (5.66s), while xBim's number measures *reading*
+  an already-exported IFC file (460-1075ms, avg 773.7ms, with a clear JIT-
+  warmup downward trend across runs). These aren't directly comparable
+  numbers; the agent reported both without forcing a misleading head-to-head.
+- **Strategic conclusion, correctly tempered**: rvt-rs and xBim are
+  complementary (producer vs. consumer), not competitors — rvt-rs's value is
+  Revit-free, Windows-free batch export; xBim remains a fine consumer of the
+  resulting IFC. No migration pressure implied in either direction for an
+  enterprise already invested in xBim-based downstream tooling.
+
+### Net effect on the book's two biggest claims
+
+1. **"99.9%+ agreement with IfcOpenShell"** — genuinely strong support from
+   this round, now independently corroborated by both IfcOpenShell AND xBim
+   agreeing with rvt-rs/ifc-lite on the same file. Properly scoped (one file,
+   not a corpus), this is the best-supported claim verified in the entire
+   project.
+2. **"15-16ms parse" / "~1.2 GB/s tokenization"** — refuted, independently, by
+   three separate agent sessions (web-ifc comparison, IfcOpenShell comparison,
+   and my own direct re-test). Real figure: ~90-160ms / ~32-54 MB/s. This is
+   now a settled correction, not an open question — any future draft should
+   use the corrected range, not the original figure.
