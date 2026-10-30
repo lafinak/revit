@@ -832,3 +832,33 @@ z=23.16m matching storey "Level 6"'s real elevation, independently verified
 earlier in this research). This closes the gap honestly left open in Round 10
 — `ifclite-geom` is a genuine, functional geometry-tessellation library, not
 an unverified claim.
+
+## Round 19 — Apache Tika comparison (Priority 11): CLEANROOM.md overstates it
+
+Full report at `comparisons/tika-vs-rvtrs.md`. Tika 3.3.3 (the given
+`tika-app-latest.jar` URL 404s — the 4.x line moved the fat jar into a zip;
+the agent correctly found and used the real 3.3.3 app jar from
+`dlcdn.apache.org/tika/3.3.3/`).
+
+**Verdict: Tika's `.rvt` "support" is not a real parser — it's generic
+OLE2/CFB container detection, with zero Revit-specific awareness.**
+`--metadata` on `real.rvt` returns only `Content-Type:
+application/x-tika-msoffice`, `Parsed-By: OfficeParser`, filename, size —
+the exact same generic classification Tika gives any unrecognized legacy
+Office-family binary (`.doc`, `.xls`, `.msg`). `--text` extracted **zero
+lines**. `--detect` returned the same generic MIME type. Control test on
+`real.ifc` (a plain-text, open format — easier to parse than Revit's binary)
+also came back with nothing structured, confirming Tika has no IFC parser
+either.
+
+**Direct comparison**: `rvt-info` extracts version, build, file GUID, save
+path, worksharing state, save counter, document title, and all 20 internal
+stream names — genuinely Revit-aware. Tika extracts none of that; it merely
+recognizes that `.rvt` happens to share Microsoft's generic OLE2/Compound
+File Binary container format with legacy Office documents, then stops.
+
+**Recommendation adopted**: the book's `CLEANROOM.md` phrase "Apache Tika's
+Revit metadata extractor" overstates reality — no such component exists in
+Tika. Rephrase to something like "Apache Tika, which detects `.rvt` as a
+generic OLE2/CFB container but performs no Revit-specific parsing," to avoid
+overclaiming prior art that isn't actually there.
