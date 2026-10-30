@@ -717,3 +717,65 @@ Full reports at `comparisons/ifcopenshell-vs-ifclite.md` and
    and my own direct re-test). Real figure: ~90-160ms / ~32-54 MB/s. This is
    now a settled correction, not an open question — any future draft should
    use the corrected range, not the original figure.
+
+## Round 15 — closed the one open loose end from phi-ag/rvt's report: rvt-wasm publish status
+
+The phi-ag/rvt comparison agent flagged `rvt-wasm`'s publish status as
+"inconclusive" because crates.io didn't respond from its sandbox. Resolved
+directly: crates.io's API requires a descriptive User-Agent header (documented
+policy, returns 403 without one — not a general network block, confirmed by
+`github.com`/`docs.rs` both returning 200 with no special headers needed).
+
+**With the correct header: `rvt-wasm` does not exist on crates.io**
+(`{"errors":[{"detail":"crate \`rvt-wasm\` does not exist"}]}`), and `npm view
+rvt-wasm` independently confirms 404 on npm too. No sibling WASM crate turned
+up in a crates.io search for "rvt" either. **This is a definitive, confirmed
+absence, not an open question anymore**: if any version of the book claims a
+published WASM build of rvt-rs exists today, that claim is false as of
+2026-10-30. (A bonus corroboration from the same query: crates.io's own
+listing for the `rvt` crate independently confirms the 2023-2025 typed-geometry
+/ 2026-2027-experimental version tiering already verified directly via
+`rvt-capabilities --matrix` days earlier in this research — nice independent
+cross-check, not a new finding.)
+
+## Round 16 — Priority 9 (phi-ag/rvt), Speckle, and BCF tools (3 of 7 new agents)
+
+Full reports in `comparisons/`. Headlines:
+
+- **phi-ag/rvt vs rvt-rs (the strategically critical one)**: `@phi-ag/rvt` is
+  real, MIT-licensed, installs cleanly, and correctly parses the Revit CFB
+  container (verified: same version/build/GUID/path/worksharing data as
+  rvt-rs, exactly). **But it does not refute the "only credible reader"
+  claim** — its public API (`basicFileInfo`, `thumbnail`, `entries`,
+  `openPath`) never touches the `Partitions/*` streams where the actual
+  building model lives. It's a container/metadata/thumbnail reader; rvt-rs is
+  the only one of the two that decodes Revit's internal element schema into
+  structured building data. **Recommendation adopted**: narrow the book's
+  claim from "only credible reader" to "only open-source tool that decodes
+  Revit's internal element/schema format into structured building data,"
+  and add a short sidebar crediting `@phi-ag/rvt` by name for the
+  metadata/thumbnail use case it genuinely does well (~4,193 downloads/month).
+  Also resolved as a side effect: `rvt-wasm` does not exist on npm or
+  crates.io (see Round 15) — the agent flagged this as inconclusive, I closed
+  it directly afterward.
+- **Speckle**: confirmed a different category entirely — a live
+  multi-tool collaboration/sync platform (requires a running, licensed Revit
+  instance for its Revit connector) vs. rvt-rs/ifc-lite's headless,
+  Revit-free extraction + agent-native MCP tooling. Confirmed zero MCP/agent
+  tooling in Speckle's docs (grepped both main READMEs, zero matches).
+  Recommendation: mention Speckle in the book, framed explicitly as
+  "sync layer vs. extraction layer," not as a competitor.
+- **BCF tools**: `openbimrs/bcf` exists as a real Rust crate with claimed
+  CLI-grade internal rigor (XSD-validated writer output, corpus-tested
+  against 44 field archives + buildingSMART's 152-file suite) — **but ships
+  no CLI binary**, so it cannot be evaluated as a competing tool a user would
+  actually install and run. ifc-lite's BCF support (verified in Round 10:
+  real zip structure, correct required files) stands unchallenged as the
+  only one of the two usable as an actual tool, though the agent noted
+  honestly that openbimrs/bcf's internal validation story is more rigorous
+  on paper than anything demonstrated for ifc-lite from the CLI alone — worth
+  a fair mention if the book discusses it, framed as "library for developers"
+  not "competing CLI."
+
+Still running: openbim-ifc-compare (Priority 10, the other strategically
+critical one), tika-compare, thatopen-survey, csg-kernel-compare.
