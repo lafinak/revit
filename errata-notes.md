@@ -945,3 +945,36 @@ establish ifc-lite as "not the largest" on its own, but it does mean ifc-lite
 is not uncontested in the pure-Rust-IFC-tooling space either, and it's the
 claim's own premise (is ifc-lite's core actually Rust?) that needs checking
 first, before weighing it against any competitor's size.
+
+## Round 21 — resolved definitively: ifc-lite is not primarily Rust, and not the largest by stars either
+
+Closes the open question both Round 20 and the `openbim-ifc-compare2` agent
+independently raised. Found ifc-lite's real source repo via `npm view
+@ifc-lite/cli repository` → `LTplus-AG/ifc-lite`. Checked directly via GitHub's
+API, not inferred:
+
+**Language breakdown (`api.github.com/repos/LTplus-AG/ifc-lite/languages`,
+bytes)**: TypeScript 89,895,350 (≈66%), Rust 30,246,413 (≈22%), JavaScript
+8,634,290, C# 3,630,953, Python, C++, Shell, HTML, CSS, PowerShell, C, CMake,
+Dockerfile making up the rest. **GitHub's own primary-language detector
+reports TypeScript, not Rust.**
+
+**Star count**: 454 (confirmed via the same API call) — fewer than
+`IPedrax/BIMCraft`'s 743.
+
+**This settles the book's claim definitively, on two independent grounds**:
+1. ifc-lite's own codebase is majority TypeScript by a wide margin (66% vs
+   22%) — Rust appears to be a secondary component, almost certainly the
+   `@ifc-lite/wasm` geometry/tokenizer kernel referenced throughout this
+   research, not the project's core. Calling it "a Rust BIM project" at all
+   is a stretch; calling it "the largest" is not supportable.
+2. Even granting every benefit of the doubt on language, ifc-lite (454 stars)
+   is smaller by popularity than BIMCraft (743 stars) — a tool this research
+   independently verified hands-on in Round 20.
+
+**Final recommendation for the book**: retire "ifc-lite is the largest single
+Rust BIM project" entirely — it is not accurate under any reading now
+checked. Replace with what's actually been verified and defensible: ifc-lite
+is a TypeScript-first (with a Rust/WASM geometry component) IFC toolkit with
+125+ MCP tools, which stands on its own merits as a genuinely capable and
+agent-native tool without needing an unsupportable "largest" superlative.
